@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+#[derive(Debug)]
 pub struct Board<T> {
     board: VecDeque<Vec<Option<T>>>,
     width: usize,
