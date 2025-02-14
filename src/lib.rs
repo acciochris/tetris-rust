@@ -1,2 +1,2 @@
-mod block;
-mod board;
+pub mod block;
+pub mod board;
