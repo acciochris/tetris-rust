@@ -1,9 +1,27 @@
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Block {
     coords: Vec<(i32, i32)>,
 }
 
 impl Block {
+    pub const I: &[(i32, i32)] = &[(1, 0), (0, 0), (2, 0), (3, 0)];
+    pub const O: &[(i32, i32)] = &[(0, 0), (1, 0), (0, 1), (1, 1)];
+    pub const T: &[(i32, i32)] = &[(1, 0), (0, 0), (2, 0), (1, 1)];
+    pub const J: &[(i32, i32)] = &[(1, 2), (1, 0), (1, 1), (0, 2)];
+    pub const L: &[(i32, i32)] = &[(0, 2), (0, 0), (0, 1), (1, 2)];
+    pub const S: &[(i32, i32)] = &[(1, 0), (2, 0), (0, 1), (1, 1)];
+    pub const Z: &[(i32, i32)] = &[(1, 0), (0, 0), (1, 1), (2, 1)];
+
+    pub const SHAPES: [&[(i32, i32)]; 7] = [
+        Block::I,
+        Block::O,
+        Block::T,
+        Block::J,
+        Block::L,
+        Block::S,
+        Block::Z,
+    ];
+
     /// Constructs a new block from slice.
     pub fn new(coords: &[(i32, i32)]) -> Self {
         Self {
@@ -12,7 +30,7 @@ impl Block {
     }
 
     /// Getter for `coords`.
-    fn coords(&self) -> &[(i32, i32)] {
+    pub(crate) fn coords(&self) -> &[(i32, i32)] {
         &self.coords
     }
 
@@ -44,7 +62,7 @@ impl Block {
     }
 
     /// Returns a new block rotated clockwise by 90 degrees about `center`.
-    fn rotate_about(&self, center: (i32, i32)) -> Self {
+    pub(crate) fn rotate_about(&self, center: (i32, i32)) -> Self {
         let (x0, y0) = center;
         Self {
             coords: self
@@ -54,21 +72,7 @@ impl Block {
                 .collect(),
         }
     }
-
-    pub fn is_valid(&self, pred: impl Fn((i32, i32)) -> bool) -> bool {
-        self.coords.iter().copied().all(pred)
-    }
 }
-
-static SHAPES: [&[(i32, i32)]; 7] = [
-    &[(1, 0), (0, 0), (2, 0), (3, 0)], // I
-    &[(0, 0), (1, 0), (0, 1), (1, 1)], // O
-    &[(1, 0), (0, 0), (2, 0), (1, 1)], // T
-    &[(1, 2), (1, 0), (1, 1), (0, 2)], // J
-    &[(0, 2), (0, 0), (0, 1), (1, 2)], // L
-    &[(1, 0), (2, 0), (0, 1), (1, 1)], // S
-    &[(1, 0), (0, 0), (1, 1), (2, 1)], // Z
-];
 
 #[cfg(test)]
 mod tests {
