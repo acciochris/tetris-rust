@@ -58,6 +58,29 @@ impl<T> Board<T> {
 mod tests {
     use super::*;
 
+    /// Constructs a Board from integers. For testing purposes only
+    /// 
+    /// ```
+    /// let b = board! {
+    ///     0 0 0;
+    ///     1 1 1;
+    ///     2 2 2;
+    /// };
+    /// ```
+    macro_rules! board {
+        ($($($x:expr)+);+ $(;)?) => {
+            {
+                let board = VecDeque::from(vec![$(vec![$(match $x {
+                    0 => None,
+                    x => Some(x)
+                }),+]),+]);
+                let width = board[0].len();
+                let height = board.len();
+                Board { board, width, height }
+            }
+        };
+    }
+
     #[test]
     fn test_board_new() {
         let board = Board::<()>::new(4, 8);
@@ -96,5 +119,22 @@ mod tests {
         assert_eq!(board.get(1, 7), &Some(()));
         assert_eq!(board.get(2, 7), &None);
         assert_eq!(board.get(3, 7), &Some(()));
+    }
+
+    #[test]
+    fn test_board_macro() {
+        let b = board! {
+            0 2 0;
+            1 1 1;
+        };
+
+        assert_eq!(b.width(), 3);
+        assert_eq!(b.height(), 2);
+        assert_eq!(b.get(0, 0), &None);
+        assert_eq!(b.get(1, 0), &Some(2));
+        assert_eq!(b.get(2, 0), &None);
+        assert_eq!(b.get(0, 1), &Some(1));
+        assert_eq!(b.get(1, 1), &Some(1));
+        assert_eq!(b.get(2, 1), &Some(1));
     }
 }
