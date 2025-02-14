@@ -40,8 +40,7 @@ impl Block {
 
     /// Returns a new block rotated clockwise by 90 degrees about the center of the block.
     pub fn rotate(&self) -> Self {
-        // find a middle point as pivot
-        self.rotate_about(self.coords[self.coords.len() / 2])
+        self.rotate_about(self.coords[0])
     }
 
     /// Returns a new block rotated clockwise by 90 degrees about `center`.
@@ -96,7 +95,7 @@ mod tests {
             block.rotate_about((3, 0)).coords(),
             &[(3, -3), (3, -2), (3, -1), (3, 0)]
         );
-        assert_eq!(block.rotate().coords(), &[(2, -2), (2, -1), (2, 0), (2, 1)]);
+        assert_eq!(block.rotate().coords(), &[(0, 0), (0, 1), (0, 2), (0, 3)]);
         assert_eq!(block.rotate().rotate().rotate().rotate(), block);
     }
 }
