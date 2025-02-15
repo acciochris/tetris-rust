@@ -1,5 +1,7 @@
 # The Tetris game implemented in Rust!
 
+[![asciicast](https://asciinema.org/a/703611.svg)](https://asciinema.org/a/703611)
+
 ## Install
 
 Follow the instructions on the [releases](https://github.com/acciochris/tetris-rust/releases) page.
