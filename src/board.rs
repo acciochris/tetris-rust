@@ -71,50 +71,57 @@ impl<T: Clone> Board<T> {
         Ok(())
     }
 
-    fn update_block(&mut self, block: Block, value: T) -> Result<()> {
+    fn update_block(&mut self, f: impl FnOnce(Block) -> Block) -> Result<()> {
         // blog idea: double borrow, current_block immutable, board mutable
         // first clear current
-        let current = self.current_block.as_ref().cloned();
-        let mut orig_value = None;
-        if let Some(orig) = current.as_ref() {
-            // store original value in case of rollback; should be same across all coords
-            let (x0, y0) = orig.coords()[0];
-            orig_value = self.get(x0 as usize, y0 as usize).as_ref().cloned();
+        let current = self.current_block.take().expect("current_block is None");
 
-            for &(x, y) in orig.coords() {
-                self.clear(x as usize, y as usize);
-            }
+        // get value; should be same across all coords
+        let (x0, y0) = current.coords()[0];
+        let value = self.get(x0 as usize, y0 as usize).clone().unwrap();
+
+        // clear current block
+        for &(x, y) in current.coords() {
+            self.clear(x as usize, y as usize);
         }
 
-        // then replace with new block if valid
-        let result = self.check_block(&block);
-        if result.is_ok() {
-            for &(x, y) in block.coords() {
-                self.set(x as usize, y as usize, value.clone());
-            }
-            self.current_block = Some(block);
-        } else if let Some(orig) = current.as_ref() {
-            // roll back
-            for &(x, y) in orig.coords() {
-                self.set(
-                    x as usize,
-                    y as usize,
-                    orig_value.as_ref().cloned().unwrap(),
-                );
-            }
+        // check validity of new block
+        let new = f(current.clone());
+        let result = self.check_block(&new);
+
+        // either roll back or draw new block
+        let block = match result {
+            Ok(_) => new,
+            Err(_) => current,
+        };
+        for &(x, y) in block.coords() {
+            self.set(x as usize, y as usize, value.clone());
         }
 
+        self.current_block = Some(block);
         result
+    }
+
+    fn set_block(&mut self, block: Block, value: T) -> Result<()> {
+        if self.current_block.is_some() {
+            panic!("current_block exists, call update_block instead");
+        }
+
+        self.check_block(&block)?;
+        for &(x, y) in block.coords() {
+            self.set(x as usize, y as usize, value.clone());
+        }
+
+        self.current_block = Some(block);
+        Ok(())
     }
 
     pub fn spawn(&mut self, block: Block, value: T) -> Result<()> {
         // find topmost block and translate to center for spawning
         let (x, y) = *block.coords().iter().min_by_key(|(_, y)| *y).unwrap();
 
-        // drop current block; required to prevent clearing current in update_block()
         self.current_block = None;
-
-        self.update_block(block.translate((self.width / 2) as i32 - x, -y), value)?;
+        self.set_block(block.translate((self.width / 2) as i32 - x, -y), value)?;
 
         Ok(())
     }
@@ -229,6 +236,77 @@ mod tests {
     }
 
     #[test]
+    fn test_set_block() {
+        let gen_board = || {
+            board! {
+                0 0 0 0 0;
+                0 0 0 0 0;
+                0 0 0 0 0;
+                0 1 0 1 1;
+                1 1 1 0 1;
+            }
+        };
+
+        let mut board = gen_board();
+        assert!(board.set_block(Block::new(Block::Z), 2).is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                2 2 0 0 0;
+                0 2 2 0 0;
+                0 0 0 0 0;
+                0 1 0 1 1;
+                1 1 1 0 1;
+            }
+            .board
+        );
+
+        let mut board = gen_board();
+        assert!(board.set_block(Block::new(Block::L), 2).is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                2 0 0 0 0;
+                2 0 0 0 0;
+                2 2 0 0 0;
+                0 1 0 1 1;
+                1 1 1 0 1;
+            }
+            .board
+        );
+
+        let mut board = gen_board();
+        assert!(board.set_block(Block::new(Block::L).down(), 2).is_err());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0;
+                0 0 0 0 0;
+                0 0 0 0 0;
+                0 1 0 1 1;
+                1 1 1 0 1;
+            }
+            .board
+        );
+
+        let mut board = gen_board();
+        assert!(board
+            .set_block(Block::new(Block::I).translate(2, 0), 2)
+            .is_err());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0;
+                0 0 0 0 0;
+                0 0 0 0 0;
+                0 1 0 1 1;
+                1 1 1 0 1;
+            }
+            .board
+        );
+    }
+
+    #[test]
     fn test_update_block() {
         let mut board = board! {
             0 0 0 0 0;
@@ -238,7 +316,7 @@ mod tests {
             1 1 1 0 1;
         };
 
-        assert!(board.update_block(Block::new(Block::I), 2).is_ok());
+        assert!(board.set_block(Block::new(Block::I), 2).is_ok());
         assert_eq!(
             board.board,
             board! {
@@ -250,14 +328,24 @@ mod tests {
             }
             .board
         );
-        assert!(board
-            .update_block(board.current_block.as_ref().unwrap().down(), 3)
-            .is_ok());
+        assert!(board.update_block(|b| b.down()).is_ok());
         assert_eq!(
             board.board,
             board! {
                 0 0 0 0 0;
-                3 3 3 3 0;
+                2 2 2 2 0;
+                0 0 0 0 0;
+                0 1 0 1 1;
+                1 1 1 0 1;
+            }
+            .board
+        );
+        assert!(board.update_block(|b| b.rotate()).is_err());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0;
+                2 2 2 2 0;
                 0 0 0 0 0;
                 0 1 0 1 1;
                 1 1 1 0 1;
@@ -265,37 +353,15 @@ mod tests {
             .board
         );
         assert!(board
-            .update_block(board.current_block.as_ref().unwrap().rotate(), 4)
-            .is_err());
-        assert_eq!(
-            board.board,
-            board! {
-                0 0 0 0 0;
-                3 3 3 3 0;
-                0 0 0 0 0;
-                0 1 0 1 1;
-                1 1 1 0 1;
-            }
-            .board
-        );
-        assert!(board
-            .update_block(
-                board
-                    .current_block
-                    .as_ref()
-                    .unwrap()
-                    .translate(0, -1)
-                    .rotate_about((0, 0)),
-                5
-            )
+            .update_block(|b| b.translate(0, -1).rotate_about((0, 0)))
             .is_ok());
         assert_eq!(
             board.board,
             board! {
-                5 0 0 0 0;
-                5 0 0 0 0;
-                5 0 0 0 0;
-                5 1 0 1 1;
+                2 0 0 0 0;
+                2 0 0 0 0;
+                2 0 0 0 0;
+                2 1 0 1 1;
                 1 1 1 0 1;
             }
             .board
