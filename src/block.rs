@@ -62,7 +62,7 @@ impl Block {
     }
 
     /// Returns a new block rotated clockwise by 90 degrees about `center`.
-    pub(crate) fn rotate_about(&self, center: (i32, i32)) -> Self {
+    pub fn rotate_about(&self, center: (i32, i32)) -> Self {
         let (x0, y0) = center;
         Self {
             coords: self
