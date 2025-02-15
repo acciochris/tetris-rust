@@ -1,5 +1,5 @@
 use crate::block::Block;
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use std::collections::VecDeque;
 
 #[derive(Debug)]
@@ -71,10 +71,13 @@ impl<T: Clone> Board<T> {
         Ok(())
     }
 
-    fn update_block(&mut self, f: impl FnOnce(Block) -> Block) -> Result<()> {
+    fn update_block_impl(&mut self, f: impl FnOnce(Block) -> Block, dry_run: bool) -> Result<()> {
         // blog idea: double borrow, current_block immutable, board mutable
         // first clear current
-        let current = self.current_block.take().expect("current_block is None");
+        let current = self
+            .current_block
+            .take()
+            .ok_or_else(|| anyhow!("current_block is None"))?;
 
         // get value; should be same across all coords
         let (x0, y0) = current.coords()[0];
@@ -90,9 +93,10 @@ impl<T: Clone> Board<T> {
         let result = self.check_block(&new);
 
         // either roll back or draw new block
-        let block = match result {
-            Ok(_) => new,
-            Err(_) => current,
+        let block = if !dry_run && result.is_ok() {
+            new
+        } else {
+            current
         };
         for &(x, y) in block.coords() {
             self.set(x as usize, y as usize, value.clone());
@@ -100,6 +104,10 @@ impl<T: Clone> Board<T> {
 
         self.current_block = Some(block);
         result
+    }
+
+    fn update_block(&mut self, f: impl FnOnce(Block) -> Block) -> Result<()> {
+        self.update_block_impl(f, false)
     }
 
     fn set_block(&mut self, block: Block, value: T) -> Result<()> {
@@ -145,6 +153,10 @@ impl<T: Clone> Board<T> {
     pub fn drop(&mut self) {
         // FIXME: use binary search to optimize this
         while let Ok(_) = self.down() {}
+    }
+
+    pub fn try_down(&mut self) -> Result<()> {
+        self.update_block_impl(|b| b.down(), true)
     }
 }
 
@@ -523,6 +535,21 @@ mod tests {
             }
             .board
         );
+        assert!(board.try_down().is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 1 0 0 0 0 0 0;
+                0 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
         board.drop();
         assert_eq!(
             board.board,
@@ -601,6 +628,21 @@ mod tests {
         assert!(board.left().is_ok());
         assert!(board.left().is_ok());
         board.drop();
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 3 0 0 0 0;
+                2 1 3 3 0 0 0 0;
+                2 1 3 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        assert!(board.try_down().is_err());
         assert_eq!(
             board.board,
             board! {
