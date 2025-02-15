@@ -107,7 +107,7 @@ impl Tetris {
         let line_count = 2 * self.scale;
         for i in 0..line_count {
             ctx.draw(&canvas::Line {
-                x1: cx,
+                x1: cx + 1.0 / line_count as f64,
                 y1: cy + i as f64 / line_count as f64,
                 x2: cx + 1.0,
                 y2: cy + i as f64 / line_count as f64,
@@ -159,7 +159,6 @@ impl Widget for &Tetris {
         let title = Line::from(" Tetris ".bold());
         let block = Block::bordered()
             .title(title.centered())
-            // .title_bottom(instructions.centered())
             .border_set(border::THICK);
 
         Canvas::default()
