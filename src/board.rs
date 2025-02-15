@@ -125,6 +125,27 @@ impl<T: Clone> Board<T> {
 
         Ok(())
     }
+
+    pub fn left(&mut self) -> Result<()> {
+        self.update_block(|b| b.left())
+    }
+
+    pub fn right(&mut self) -> Result<()> {
+        self.update_block(|b| b.right())
+    }
+
+    pub fn down(&mut self) -> Result<()> {
+        self.update_block(|b| b.down())
+    }
+
+    pub fn rotate(&mut self) -> Result<()> {
+        self.update_block(|b| b.rotate())
+    }
+
+    pub fn drop(&mut self) {
+        // FIXME: use binary search to optimize this
+        while let Ok(_) = self.down() {}
+    }
 }
 
 #[cfg(test)]
@@ -421,6 +442,191 @@ mod tests {
                 0 0 1 1 0;
                 0 0 0 0 0;
                 0 0 0 0 0;
+            }
+            .board
+        );
+    }
+
+    #[test]
+    fn test_actions() {
+        let mut board = board! {
+            0 0 0 0 0 0 0 0;
+            0 0 0 0 0 0 0 0;
+            0 0 0 0 0 0 0 0;
+            0 0 0 0 0 0 0 0;
+            0 0 0 0 0 0 0 0;
+            0 1 0 0 0 0 0 0;
+            0 1 0 1 1 1 1 1;
+            1 1 1 0 1 1 1 1;
+        };
+
+        assert!(board.spawn(Block::new(Block::I), 2).is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 2 2 2 2 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 1 0 0 0 0 0 0;
+                0 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        assert!(board.down().is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0 0 0 0;
+                0 0 0 2 2 2 2 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 1 0 0 0 0 0 0;
+                0 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        assert!(board.rotate().is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 2 0 0 0;
+                0 0 0 0 2 0 0 0;
+                0 0 0 0 2 0 0 0;
+                0 0 0 0 2 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 1 0 0 0 0 0 0;
+                0 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        for _ in 0..4 {
+            assert!(board.left().is_ok());
+        }
+        assert!(board.left().is_err());
+        assert_eq!(
+            board.board,
+            board! {
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 1 0 0 0 0 0 0;
+                0 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        board.drop();
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 1 0 0 0 0 0 0;
+                2 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        assert!(board.spawn(Block::new(Block::Z), 3).is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 3 3 0 0 0;
+                0 0 0 0 3 3 0 0;
+                0 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 1 0 0 0 0 0 0;
+                2 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        assert!(board.down().is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0 0 0 0;
+                0 0 0 3 3 0 0 0;
+                0 0 0 0 3 3 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 1 0 0 0 0 0 0;
+                2 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        assert!(board.rotate().is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 3 0 0 0;
+                0 0 0 3 3 0 0 0;
+                0 0 0 3 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 1 0 0 0 0 0 0;
+                2 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        assert!(board.right().is_ok());
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0 3 0 0;
+                0 0 0 0 3 3 0 0;
+                0 0 0 0 3 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 1 0 0 0 0 0 0;
+                2 1 0 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        assert!(board.left().is_ok());
+        assert!(board.left().is_ok());
+        board.drop();
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 3 0 0 0 0;
+                2 1 3 3 0 0 0 0;
+                2 1 3 1 1 1 1 1;
+                1 1 1 0 1 1 1 1;
+            }
+            .board
+        );
+        board.clear_filled_rows();
+        assert_eq!(
+            board.board,
+            board! {
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                0 0 0 0 0 0 0 0;
+                2 0 0 0 0 0 0 0;
+                2 0 0 3 0 0 0 0;
+                2 1 3 3 0 0 0 0;
+                1 1 1 0 1 1 1 1;
             }
             .board
         );
