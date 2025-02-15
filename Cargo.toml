@@ -2,9 +2,25 @@
 name = "tetris-rust"
 version = "0.1.0"
 edition = "2021"
+authors = ["Chris Liu"]
+description = "The Tetris game implemented in Rust."
+readme = "README.md"
+repository = "https://github.com/acciochris/tetris-rust"
+license = "MIT"
+
+[package.metadata.wix]
+upgrade-guid = "605A367D-3062-42D5-BD35-AF22DB766894"
+path-guid = "02270268-E9B6-45C4-94BF-3C519C26B4D7"
+license = false
+eula = false
 
 [dependencies]
 anyhow = "1.0"
 crossterm = "0.28.1"
 rand = "0.9.0"
 ratatui = "0.29.0"
+
+# The profile that 'dist' will build with
+[profile.dist]
+inherits = "release"
+lto = "thin"
