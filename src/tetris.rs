@@ -1,3 +1,4 @@
+use std::cmp;
 use std::time::{Duration, Instant};
 
 use crate::{block::Block as TBlock, board::Board};
@@ -52,7 +53,9 @@ impl Tetris {
             if event::poll(Duration::from_millis(20))? {
                 self.handle_events()?;
             }
-            if last_update.elapsed() >= Duration::from_millis(800) {
+            if last_update.elapsed()
+                >= Duration::from_millis(cmp::max(800 - 20 * self.score, 200) as u64)
+            {
                 let _ = self.board.down();
                 self.update_board();
                 last_update = Instant::now();
