@@ -147,7 +147,24 @@ impl<T: Clone> Board<T> {
     }
 
     pub fn rotate(&mut self) -> Result<()> {
-        self.update_block(|b| b.rotate())
+        // blog idea: double borrow of self
+        let width = self.width as i32;
+        self.update_block(|b| {
+            let mut rotated = b.rotate();
+
+            let min = rotated.coords().iter().map(|c| c.0).min().unwrap();
+            if min < 0 {
+                rotated = rotated.translate(-min, 0);
+                return rotated;
+            }
+            let max = rotated.coords().iter().map(|c| c.0).max().unwrap();
+            if max >= width {
+                rotated = rotated.translate(width - max - 1, 0);
+                return rotated;
+            }
+
+            rotated
+        })
     }
 
     pub fn drop(&mut self) {
