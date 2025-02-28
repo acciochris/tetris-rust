@@ -46,15 +46,18 @@ impl<T: Clone> Board<T> {
         self.board[y][x] = None;
     }
 
-    pub fn clear_filled_rows(&mut self) {
+    pub fn clear_filled_rows(&mut self) -> usize {
         self.board.retain(|row| row.iter().any(|x| x.is_none()));
 
         // insert new empty rows to maintain height
-        for _ in 0..(self.height - self.board.len()) {
+        let num_rows = self.height - self.board.len();
+        for _ in 0..num_rows {
             let mut row = Vec::new();
             row.resize_with(self.width, || None);
             self.board.push_front(row);
         }
+
+        num_rows
     }
 
     fn check_block(&self, block: &Block) -> Result<()> {
@@ -231,7 +234,7 @@ mod tests {
         board.set(2, 7, ());
         board.set(3, 7, ());
 
-        board.clear_filled_rows();
+        assert_eq!(board.clear_filled_rows(), 2);
 
         for x in 0..4 {
             for y in 0..7 {
@@ -674,7 +677,7 @@ mod tests {
             }
             .board
         );
-        board.clear_filled_rows();
+        assert_eq!(board.clear_filled_rows(), 1);
         assert_eq!(
             board.board,
             board! {

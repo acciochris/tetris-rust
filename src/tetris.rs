@@ -22,6 +22,7 @@ use ratatui::{
 pub struct Tetris {
     board: Board<Color>,
     scale: u16,
+    score: i32,
     exit: bool,
     rng: ThreadRng,
 }
@@ -37,6 +38,7 @@ impl Tetris {
         Self {
             board: Board::new(width, height),
             scale,
+            score: 0,
             exit: false,
             rng: rand::rng(),
         }
@@ -74,7 +76,7 @@ impl Tetris {
             .board
             .try_down()
             .or_else(|_| {
-                self.board.clear_filled_rows();
+                self.score += self.board.clear_filled_rows() as i32;
                 self.board.spawn(
                     TBlock::new(*TBlock::SHAPES.choose(&mut self.rng).unwrap()),
                     *COLORS.choose(&mut self.rng).unwrap(),
@@ -156,9 +158,24 @@ impl Tetris {
 
 impl Widget for &Tetris {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let title = Line::from(" Tetris ".bold());
+        let title = Line::from(" tetris ".bold());
+        let title_bottom = if self.score > 0 {
+            Line::from(vec![
+                " score: ".into(),
+                self.score.to_string().blue().bold(),
+                " ".into(),
+            ])
+        } else {
+            Line::from(vec![
+                " press ".into(),
+                "<Q>".blue().bold(),
+                " to quit ".into(),
+            ])
+        };
+
         let block = Block::bordered()
             .title(title.centered())
+            .title_bottom(title_bottom.centered())
             .border_set(border::THICK);
 
         Canvas::default()
